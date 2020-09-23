@@ -1,0 +1,532 @@
+Introduction 
+
+setting up the backend 
+
+the approach 
+
+API middleware 
+
+actions 
+
+restructuring the store 
+
+getting data from the server 
+
+loading indicators 
+
+caching 
+
+saving data to the server 
+
+exercise 
+
+solution - resolving bugs 
+
+solution - assigning a bug to a user 
+
+reducing coupling 
+
+cohesion
+
+/* --------------------------
+
+Introduction 
+
+    How to call APIs in your Redux application
+
+    really important principles 
+
+setting up the backend 
+
+
+
+the approach 
+
+    With the thunk middleware,
+    we can dispatch functions 
+
+    which allows us to execute code with side effects 
+
+    like calling APIs 
+
+    remember we are not suppose to call APIs 
+    in the reducers 
+
+    since reducers are pure functions 
+
+    These properties make our reducers easier to tests.
+
+    -
+
+    Where do we put the code with side effects?
+
+        -> in our action creators 
+
+        with the thunk middleware, we can return a function 
+        from our action creator 
+
+
+        function actionCreator() {
+            return function() {
+
+            }
+        }
+
+    That's where we encapsulate code with side effects.
+
+    Two functions are passed automatically 
+    as the followeing 
+
+        function actionCreator() {
+            return function(dispatch, getState) {
+
+            }
+        }
+
+        // can dispatch new actions 
+        // and look at the current state of the store 
+
+        we can remove the second parameter if we'd like 
+
+        we could also rewrite the function using the arrow function syntax 
+
+        function actionCreator() {
+            return (dispatch) => {
+
+            }
+        }
+
+        rewrite again as 
+
+        const actionCreator = () => {
+            return (dispatch) => {
+
+            }
+        }
+
+
+        could simplify more even 
+
+
+        const actionCreator = () => (dispatch) => {
+            }
+        }
+
+    --
+
+    a real example 
+
+    const actionCreator = () => (dispatch) => {
+            // call API 
+            // superagent, axios, or just fetch with the browser 
+            // they return a promise 
+
+            // if 
+            // resolve: dispatch(success)
+            // then we put the list returned by the server 
+            // as the payload for the action 
+
+            // Rejected: dispatch(error) 
+            
+        }
+    }
+
+    there's a problem with the above pattern because it's reptitive
+
+    need to follow those 3 steps every time you want to call the server 
+
+    using try catch or then 
+
+    this is where we can instead use middleware 
+
+    We can implement this structure within a middleware function 
+
+    ----
+    
+
+    there are various naming conventions for naming the action 
+
+    Present 
+    (common convention)
+        GET_BUGS_REQUEST
+
+        GET_BUGS_SUCCESS
+
+        GET_BUGS_FAIL
+
+
+    Past 
+        bugsRequested
+
+        bugsReceived
+
+        bugsRequestFailed
+
+    --
+
+
+
+API middleware 
+
+    in middleware/ 
+
+        api.js 
+
+        const api = store => next => action => {
+
+        };
+
+        export default api;
+
+
+    ---
+
+    then add the middleware 
+
+
+
+    in configureStore.js 
+
+    import toast from "./middleware/toast";
+    import api from './middleware/api';
+
+    export default function() {
+        return configureStore({
+            reducer,
+            middleware: [
+                ...getDefaultMiddleware(),
+                logger({ destination: "console" }),
+                toast,
+                api
+            ]
+        })
+    }
+
+    --
+
+    // so need an action for the api request 
+    // the payload should include all the data you need 
+    // to make an API request 
+
+
+    // note that we are passing strings so that it is serializable 
+    // functions are not serializable
+    const action = {
+        type: 'apiCallBegan',
+        payload: {
+            url: '/bugs',
+            method: 'get',
+            data: {},
+
+            // pass the name of the action that should be dispatched 
+            // if the operation is sucessful
+            onSuccess: 'bugsReceived',
+            onError: 'apiRequestFailed'
+        }
+    }
+
+
+    const api = store => next => action => {
+        if (action.type !== 'apiCallBegan') {
+            next(action);
+            return;
+        }
+    };
+
+    // could simplify to be 
+
+    const api = store => next => action => {
+        if (action.type !== 'apiCallBegan') return next(action);
+    };
+
+    export default api;
+
+    ---
+
+    so here we have 3 steps 
+
+    first make the api call 
+
+    then handle the result and reject cases 
+
+    --
+
+    Mosh is using axios 
+
+    $ npm i axios 
+
+    import axios from 'axios';
+
+
+    extract the properties from the payload using object destructing syntax 
+
+
+    const api = store => next => action => {
+        if (action.type !== 'apiCallBegan') return next(action);
+
+        const { url, method, data, onSuccess, onError } = action.payload;
+
+        // next axios to make an API call 
+
+        axios.request({
+                // in real application store in a config file for baseURL 
+            baseURL: 'http://localhost:9001/api',
+            url,
+            method,
+            data
+        }).then().catch();
+
+
+    };
+
+
+    // or use async and await 
+        // so have to mark last function as aync 
+
+     const api = ({ dispatch }) => next => async action => {
+        if (action.type !== 'apiCallBegan') return next(action);
+
+        next(action);
+
+        const { url, method, data, onSuccess, onError } = action.payload;
+
+        // have to wrap in try block due to await keyword 
+        // where dispatch two different types of actions 
+        // from the store object 
+
+
+        try {
+            const response = await axios.request({
+                    // in real application store in a config file for baseURL 
+                baseURL: 'http://localhost:9001/api',
+                url,
+                method,
+                data
+            });
+            dispatch({ type: onSuccess, payload: response.data });
+
+        } catch(error) {
+            dispatach({ type: onError, payload: error });
+        }
+    };
+
+    ---
+
+actions 
+
+    Problem is hardcoded action name 
+    that has been duplicated 
+
+    should have an actionCreator to solve this problem 
+
+    2nd is the inconsistent naming convention 
+
+    better to call 
+
+    apiCalledFailed 
+
+    -
+
+    new file 
+
+
+    api.js 
+
+    import { createAction } from '@reduxjs/toolkit';
+
+    export const apiCallBegan = createAction("api/apiCallBegan");
+    export const apiCallSuccess = createAction("api/apiCallSuccess");
+    export const apiCallFailed = createAction("api/apiCallFailed");
+
+    --
+
+    then in middleware replace the hardcoded string 
+    with the name of the action 
+
+    import * as actions from "../api";
+
+    if (actions.type !== actions.apiCallBegan.type)
+
+
+    --
+
+    store.dispatch(
+        actions.apiCallBegan({
+            url: "/bugs",
+            onSuccess: "bugsReceived",
+            onError: actions.apiCallFailed.type
+        })
+    );
+
+    // we want to get rid of having to specify onError for every api call 
+    // since our middleware should know to take care of it 
+    // reserve it for specific scenarios 
+
+        store.dispatch(
+        actions.apiCallBegan({
+            url: "/bugs",
+            onSuccess: "bugsReceived"
+        })
+    );
+
+    --
+
+    then in our middleware
+
+    dispatch a general error action 
+
+
+    dispatch(actions.apiCallFailed(error));
+
+
+    so have a general success dispatch as well 
+
+    dispatch(actions.apiCallSuccess(response.data));
+
+    // then specific after 
+
+    if (onSuccess) dispatch({......})
+
+
+restructuring the store 
+
+    currently using an array to store our bugs 
+    for the slice 
+
+    this is just an example 
+
+    replace with an object 
+
+
+    const slice = createSlice({
+        name: "bugs",
+        initialState: {
+            list: [],
+            loading: false,
+
+            // timestamp, useful for caching 
+            lastFetch: null,
+        }
+    })
+
+    // now have to update the associated reducers 
+
+getting data from the server 
+
+    and putting to the store 
+
+    dispatch to get the bugs from the server 
+
+    so you can see the actions 
+    and the payload 
+
+    look at diff, 
+
+    need a reducer that knows how to handle the action 
+
+    -
+
+    reducers: {
+        bugsReceived: (bugs, action) => {
+            bugs.list = action.payload;
+        }
+    }
+
+    --
+
+    don't want details in the UI layer 
+
+    don't want to know what action to dispatch and the url to call 
+
+    those are too detailed 
+
+    brittle 
+    --
+
+
+    in UI layer 
+
+    store.dispatch(loadBugs());
+    // dispatch the action and store becomes hydrated with the data from the server 
+
+    ---
+
+    action creator loadBugs() that would encapsulate that logic 
+
+    in bugs.js 
+
+
+    // Action Creators 
+
+    export const loadBugs = () => apiCallBegan({
+        url: "/bugs",
+        onSuccess: "bugs/bugsReceived"
+    });
+
+loading indicators 
+
+    while waiting,
+
+    set loading property to true 
+
+    steps to follow 
+
+    1) define a new action 
+
+        bugsRequested 
+
+    2) make a new reducer 
+
+        loading = true 
+
+    3) middleware to dispatch that new action before making the api call 
+
+caching 
+
+    use Data.now() since it is serializable 
+
+    use moment. js 
+
+    npm i moment 
+
+
+
+saving data to the server 
+
+    1) make an API call 
+
+    2) promise resolved => dispatch(success)
+
+    3) promise rejected => dispatch(error)
+
+exercise 
+
+    save the data when 
+
+    - assigning a bug to a user 
+    - resolving a bug 
+
+solution - resolving bugs 
+
+solution - assigning a bug to a user 
+
+reducing coupling 
+
+    in software our modules should not expose their internals 
+
+    because if the internals change,
+    we want to reduce the impact of those changes 
+
+    --
+
+    we don't want breaking changes,
+
+    --
+
+    don't export the internals of the module 
+
+    --
+
+    so only export the action creators that have the notion of commands
+
+cohesion

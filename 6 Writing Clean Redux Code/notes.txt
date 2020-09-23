@@ -1,0 +1,437 @@
+introduction 
+
+structuring files and folders 
+
+ducks pattern 
+
+Redux Toolkit 
+
+Creating the store 
+
+creating actions 
+
+creating reducers
+
+creating slices 
+
+exercise 
+
+solution
+
+/* ---------------------
+
+introduction 
+
+    common complain is the boilerplate of Redux,
+
+    this section is for clean and maintainable Redux code 
+
+structuring files and folders 
+
+    src/
+        actions.js
+        actionTypes.js
+        reducer.js 
+
+    Instead move them into a new folder called store 
+
+    src/
+        store/
+            actions.js
+            actionTypes.js
+            reducer.js 
+
+    Redux is all about state management.
+
+    It should be isolated from the UI code.
+
+    They are different concerns.
+
+    UI 
+    and 
+    State 
+
+    should be separate 
+
+    Name the artifacts based on the role.
+
+    As your app grows,
+    could have hundreds of actions,
+    they grow out of control 
+
+    so group the files based on feature folders 
+
+    src/
+        store/
+            featureName/
+                actions.js
+                actionTypes.js
+                reducer.js
+
+
+    Break down the application into context, 
+    a sub domain 
+    
+    
+    src/
+        store/
+            auth/
+                actions.js
+                actionTypes.js
+                reducer.js
+            bugs/
+            projects/
+
+    The structure is better.
+
+    Common issue with redux,
+    is need to touch 3 different files 
+
+    define a constant in action types,
+    then a creator 
+    then update reducer 
+
+    So some people merge into a single file. 
+
+    Ducks pattern 
+
+    // last syllabul of Redux 
+    it's a bundle of action types, actions, and reducer 
+
+    src/
+        store/
+            auth.js 
+            bugs.js 
+            project.js 
+
+ducks pattern 
+
+    src/ 
+        store/
+            bugs.js 
+
+
+    So bug.js is a slice of our store. 
+
+    // Action types 
+    // same content as actionTypes.js
+
+    // Action creators 
+    // same content as actions.js 
+
+    // Reducer
+    // same content as reducer.js 
+
+
+    There are some rules to follow when applying the ducks pattern. 
+
+    1st rule is that the reducer has to be the default export of the module 
+
+    2nd then export individiaul action creators 
+
+    3rd and no need to export action types 
+
+
+    when a small library 
+    importing * is okay 
+
+    however if lodash for example and importing a large library 
+    that's a bad practice due to large overhead 
+
+    rename files such that not having import names where the folder and the file name within 
+    have the same name 
+
+
+Redux Toolkit 
+
+    powerful library,
+
+    formly known as Redux starter kit 
+
+
+    this simplifies your Redux code 
+
+    $ npm i @reduxjs/toolkit@1.2.5
+
+    redux-tooklit.js.org 
+
+        go to get started page 
+
+    This library provides a bunch of helper functions for simplifying Redux code. 
+
+Creating the store 
+
+    utility functions 
+
+    One is for creating the store 
+
+    Redux toolkit has a function that wraps createStore function of Redux 
+    and also sets up Redux Devtools
+
+    no longer have to import the enhancer function from redux-devtools-extension 
+
+    Another benefit is that able to dispatch asynchronous actions 
+
+    such as when calling APIs 
+
+    if you don't use the function provided by Redux toolkit 
+
+    You will have to apply some middleware that will allow you to dispatch asynchronous actions 
+
+    If use 
+
+    createStore from Redux you have to do all this setup manually 
+
+    otherwise You get all of this for free 
+
+    so only have to do 
+
+
+    import { configureStore } from '@reduxjs/toolkit';
+
+    import reducer from "./bugs";
+
+    export default function() {
+
+        // so instead of passing multiple objects,
+        // you instead pass a configuration object 
+
+        // pass the root reducer 
+        const store = configureStore({
+            reducer: reducer
+        });
+    }
+
+    could simplify it to be 
+
+
+    return configureStore({ reducer });
+
+    
+
+creating actions 
+
+    how to create actions with less boilerplate 
+
+    Define a bunch of constants 
+
+    then action creators that use these constants 
+
+    eveyr action creator returns an object with the structure 
+
+    ---
+
+    import { createAction } from '@redux/toolkit';
+
+    const action = createAction("bugUpdated");
+    console.log(action);
+
+    console.log(action()); // you get an action object 
+    // pass an argument 
+    // and that will be the payload 
+    // you could pass an object 
+    // now the payload property is an object 
+
+    It returns an action creator not an action 
+
+    // think of it as createActionCreator 
+
+    
+    const bugUpdated = createAction("bugUpdated");
+
+
+    In JavaScript, functions are objects 
+
+    they have properties 
+
+
+    console.log(bugUpdated.type);
+
+    console.log(bugUpdated.toString());
+
+    -
+
+    so no longer need constants in ActionTypes 
+
+    and can redefine your action creators 
+
+
+    export const bugAdded = createAction("bugAdded");
+
+
+    -
+    then in reducer 
+
+    case bugAdded.type:
+
+
+creating reducers
+
+    Can improve the reducer function,
+
+    a lot of people don't like switch case statements 
+
+    and don't like the immutable update pattern 
+
+    With Redux toolkit you can create a reducer 
+
+    and that reducer,
+    you won't use switch case 
+
+    and can write regular mutating code 
+
+    under the hood,
+
+    Redux Tookit uses immer 
+    so your code automatically gets translated into immutable update pattern 
+
+    ---
+
+    import { createReducer } from '@redux/toolkit';
+
+    // so the function takes 2 parameters 
+
+    // 1st is the initial state 
+    // 2nd is an object that maps actions to functions 
+    // that handle those actions 
+
+
+    export default createReducer([], {
+        // key: value 
+        // actions: functions that handle those actions 
+        // mapping between (event => event handler)
+
+        bugAdded: (state, action) => {
+            // can write mutating code 
+            // don't have to use the spread operator 
+
+            state.push({
+                id: ++lastId,
+                description: action.payload.description,
+                resolved: false
+            });
+        },
+
+        bugResolved: (state, action) => {
+            const index = state.findIndex(bug => bug.id === action.payload.id);
+            state[index].resolved = true;
+        },
+
+        // With Redux toolkit you also don't need a default case 
+    });
+
+    // note above could rename state to be bugs 
+
+    In immer 
+
+    we have a function 
+
+    produce(initialState, draftState => {
+        draftState.x = 1;
+    });
+    1st arg is the initial state 
+
+    2nd arg is a function for updating the state 
+
+    // immer will apply those changes to a copy to initialState 
+
+    --
+
+    also instead could do 
+
+
+    for computed type rather than hard coding 
+
+    // so can dynamically calculate and can rename it more easily in the future 
+    [bugAdded.type]: (bugs, action) => {
+
+    }
+
+
+creating slices 
+
+    so creating actions and a reducer 
+
+    in Redux toolkit,
+
+    also have a function that combines 
+    these two steps 
+
+    so it automatically creates actions on a reducer for us 
+
+    import { createSlice } from '@redux/toolkit';
+
+
+    // pass a config object as the argument 
+
+    const slice = createSlice({
+        name: 'bugs',
+        initialState: [],
+
+        // next property is reducers 
+        // so map 
+        // actions => action handlers
+
+        reducers: {
+            bugAdded: (state, action) => {
+                    state.push({
+                    id: ++lastId,
+                    description: action.payload.description,
+                    resolved: false
+                });
+            },
+
+            // the initial state could be named whatever you want 
+            bugResolved: (bugs, action) => {
+                const index = state.findIndex(bug => bug.id === action.payload.id);
+                state[index].resolved = true;
+            }
+        }
+    });
+
+
+    internally it calls createAction and createReducer 
+
+    so the slice is an object with 4 properties 
+
+    name, 
+
+    reducer 
+        => a function with two parameters 
+
+
+    actions 
+        bugAdded 
+
+        bugResolved
+
+    caseReducers 
+
+    so we need to export the reducer function and 
+
+    specific actions as named exports 
+
+    ----
+
+
+    export default slice.reducer; 
+
+    // export the actions 
+    // use object destructuring 
+
+    export const { bugAdded, bugResolved } = slice.actions;
+
+
+    the actions are now prefixed with the slice name 
+
+    bugs/bugAdded 
+
+
+    createSlice is the only function you need 
+    from @redux/toolkit 
+
+    no need to explicitly create actions or a reducer 
+
+exercise 
+
+solution

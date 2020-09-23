@@ -1,0 +1,452 @@
+introduction
+
+Redux State vs Local State 
+
+Structuring a Redux Store 
+
+Combining Reducers 
+
+Normalization
+
+Selectors 
+
+Memoizing Selectors with Reselect 
+
+Exercise 
+
+Solution
+
+/* ----------------------
+
+introduction
+
+    more advanced topics,
+
+Redux State vs Local State 
+
+    is it okay to have local state in UI components 
+    or do I have to put all the state in the Redux store?
+
+    two approaches 
+
+    Store global state 
+        -> if used by multiple components 
+        have a single place to store data that's shared 
+
+    
+    if just using it for sharing global data,
+    could instead just use Context in React 
+
+        * easy to implement 
+
+
+    store all state 
+        * unified data access 
+        * cacheability
+        * easier debugging
+            // can use redux devtools 
+
+        * more testable code
+
+        // more maintainable
+
+    So the more you push into the store, 
+    the more you can get out of Redux 
+
+    -
+
+    Comes at a cost as have more Redux code 
+    there are benefits tho 
+
+    should use Redux in a complex application 
+
+    put all state in the store 
+
+    however there are exceptions 
+    for Form state 
+
+    -> temporary values 
+    have no impact on other parts until the form is submitted 
+
+    * too many dispatches 
+    // performance penalty and harder debugging 
+
+    --
+
+    The more state we put in the store, the more we can get out of Redux.
+
+    // local state is fine if other parts of the app won't be using that state 
+    // just store it locally
+
+Structuring a Redux Store 
+
+    best practice for Structuring the store 
+
+    [
+        { id: 1, description: "", resolved false },
+        { ..... },
+        { ...... },
+    ]
+
+    another way is as an object 
+    mapping the id to an object 
+
+    [
+        1: { id: 1, description: "", resolved: false },
+        2: { .... },
+        3: { .... }
+    ]
+
+
+    the benefit of this structure,
+    can quickly lookup by id 
+
+    it's a very fast operation 
+
+    always takes O(1)
+
+    even if have 10,000 bugs saved in the store 
+
+    otherwise if it was an array it would be O(n) to iterate through it to find the id we wanted 
+
+
+    objects are for fast lookups 
+    but they don't preserve order 
+    so should not ALWAYS be used 
+
+    if the user sorts the items 
+    
+    understand what problem you are trying to solve 
+
+    if fast lookups -> objects 
+    if need to sort -> use an array 
+
+    if need both 
+        can use a combination of the two 
+
+
+        {
+            byIds: {
+                1: { .... },
+                2: { .... },
+                3: { .... }
+            },
+            allIds: [3, 1, 2]
+        }
+
+        so allIds represent the order of the bugs 
+
+        and we also have a map for quickly looking up the bug 
+
+    In a real application,
+    we often have multiple slices in the store 
+
+
+    {
+        bugs: [],
+        projects: [],
+        tags: []
+    }
+
+    // so 3 slices 
+
+
+    It's a good practice to put these slices under a parent slice called entities
+
+    and also have parent slice called auth, which contains data about the current user 
+
+    { 
+        entities: {
+            bugs: [],
+            projects: [],
+            tags: []
+        },
+        auth: { userId: 1,. name: "John" },
+        ui: {
+            // specific to components 
+
+            bugs: { query: "....", sortBy: "...." }
+        }
+    }
+
+    because those objects are the entities of our application domain 
+
+
+Combining Reducers 
+
+    each slice exposes a reducer function 
+
+    when configuring our store,
+    currently using one reducer
+
+
+    So this video is about creating a store with multiple slices 
+
+    store/
+
+        reducer.js 
+
+
+        import { combineReducers } from 'redux';
+        import bugsReducer from './bugs';
+        import projectsReducer from './projects';
+
+        // With this object we specify the slices of our store 
+        export default combineReducers({
+            bugs: bugsReducer,
+            projects: projectsReducer
+        });
+
+        ---
+
+
+    import { combineReducers } from 'redux'
+    import entitiesReducer from './entities';
+
+    export default combineReducers({
+        entities: entitiesReducer
+    });
+
+
+
+    We are essentially creating a hiearchy of reducer functions 
+
+    at top we have the root reducer 
+
+        that the store talks to 
+
+        when we dispatch an action it's passed to the root reducer 
+        then it will pass to each 
+        child reducers 
+
+    understand in redux,
+    mutliple reducers can handle the same action 
+
+    each reducer is responsible for updating a slice of the store 
+
+    bugs reducer can only update the bugs property 
+
+Normalization
+
+    an imporant principle when designing a redux store 
+
+    [
+        {
+            id: 1,
+            description: "",
+            project: { id: 1, name: "a" }
+        },
+        {
+            id: 1,
+            description: "",
+            project: { id: 1, name: "a" }
+        },
+    ]
+
+    Basically means that we should not duplicate data in our store. 
+
+    Have to update multiple places 
+    gets messy 
+
+    if don't update every instance 
+
+    we will end up with inconsistent data 
+
+    also updating nested structures 
+    can get complex 
+
+    so aim to keep data structure as flat as possible 
+
+    get rid of nested structure 
+    and instead replace with the id 
+
+     [
+        {
+            id: 1,
+            description: "",
+            projectId: 1
+        },
+        {
+            id: 1,
+            description: "",
+            projectId: 1
+        },
+    ]
+
+    so now we have a flat structure with no nesting 
+
+    then can look it up in the project slice 
+
+    So with normalization,
+    we connect our data using Ids 
+    and get rid of duplicates 
+
+
+    chances are in your application 
+
+    --
+
+    in your app could be consuming an API 
+    that returns 
+    denormalized hiearchical data 
+    in that case 
+    use 
+    normalizr 
+
+    to normalize your data 
+    // follow the documentation 
+
+Selectors 
+
+    There are times when you want to compute derived data 
+    from the Redux store. 
+
+    // this is our query 
+    const unresolvedBugs = store.getState().entities.bugs.filter(bug => !bug.resolved);
+
+    console.log(unresolvedBugs);
+
+
+    // Problem with the approach,
+    // in a real app 
+    // the logic for computing derived data could be complex.
+    // It's possible that might have that logic in different places 
+    // in your application.
+
+    To solve this,
+    encapsulate this logic and put it in the bug slice 
+
+    -
+
+    bugs.js 
+
+
+    after exporting the reducer 
+
+    export a function called getUnresolvedBugs 
+
+    // so it should take the state and return the computed state 
+
+    // This is a selector 
+    // it's a function that takes the state and returns a computed state.
+    export const selectUnresolvedBugs = state => 
+        state.entities.bugs.filter(bug => !bug.resolved);
+
+
+    the naming convention is to prefix with select 
+    or 
+    UnresolvedBugsSelector 
+    // as the suffix 
+
+    or could do 
+
+    getUnresolvedBugs
+
+    --
+
+    now have a single place for extracting and can use that in multiple parts of your 
+    application 
+
+    // import the selector 
+    import { getUnresolvedBugs }
+
+    const unresolvedBugs = getUnresolvedBugs(store.getState());
+
+Memoizing Selectors with Reselect 
+
+    The selector is previous 
+    is that .filter returns a new array every time you call the function 
+
+    In React, if the state changes then our components get re-rendered.
+
+    However if the state hasn't changed 
+    then we don't want our components to re-render 
+
+    Imagine that the logic is a bit expensive 
+    have to wait half a second 
+
+    don't want to wait if not changed 
+
+    So now we use Memoization 
+
+
+    // Memoization is a technique for optimizing expensive functions.
+
+    f(x) => y 
+
+        // build a cache of input and outputs 
+
+        { input: 1, output: 2}
+
+        next time we call the function 
+        before we execute that expensive logic,
+        we look at our cache 
+
+        we know that we previously called it with the input 
+        and got the output 
+
+        no need to recompute it 
+
+    by memoizing the selector you can solve the two problems 
+        -> data not changed 
+            // get it from the cache 
+            // have the data in memory 
+
+        -> improve performance 
+            // if we have the result ready, no need to recalculate it 
+
+    How?
+
+    Can use a library called reselect,
+
+    $ npm i reselect 
+
+    -
+
+
+    import { createSelector } from 'reselect';
+
+    // with that function, you can create a memoized selector 
+
+    // give it one or more selector functions 
+    // the output gets passed to the result function 
+    export const getUnresolvedBugs = createSelector(
+        state => state.entities.bugs,
+        bugs => bugs.filter(bugs => !bugs.resolved)
+    )
+
+    NOTE: 
+        the result of the selector is passed to the result function 
+
+        which is the second arg
+
+
+    if the list of bugs is not changed, 
+    then the logic will not be executed again 
+
+    will return from the cache 
+
+
+    You could also pass multiple selector functions 
+
+
+    export const getUnresolvedBugs = createSelector(
+        state => state.entities.bugs,
+        state => state.entities.projects,
+        (bugs, projects) => bugs.filter(bugs => !bugs.resolved)
+    )
+
+    so the output of the selectors 
+    (args)
+
+    will end up as the input 
+    of the result function
+
+    if the list of bugs and projects remain unchanged 
+    then it the specified arrow function won't be run 
+    and it won't be calculated again 
+
+
+Exercise 
+
+Solution

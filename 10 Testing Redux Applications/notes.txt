@@ -1,0 +1,394 @@
+Introduction
+
+What is Automated Testing
+
+Setting up the Testing Environment
+
+Your First Unit Test 
+
+Unit Testing Redux Applications 
+
+Solitary Tests 
+
+Social Tests 
+
+Mocking HTTP calls 
+
+Writing Clean tests 
+
+Test Coverage 
+
+Exercises 
+
+Solution - getUnresolvedBugs 
+
+Solution - resolveBugs 
+
+Solution - loadingBugs 
+
+/* -------------------
+
+Introduction
+
+What is Automated Testing
+
+    Writing code to test our code. 
+
+    -
+
+    Can run thousands of tests in a matter of seconds 
+
+    which is faster than manually testing all functions 
+
+    Always an element of manual testing,
+    but find a balance for your team.
+
+    -
+
+    Types of Tests 
+        - unit test 
+
+            // test the application without its external dependencies
+
+            provide mock or fake objects that mimic 
+            the external resource
+
+            don't talk to external resource 
+            as we want our unit tests to be super fasts 
+
+            run it every few minutes 
+
+        - integration tests 
+
+            test application with their external dependencies
+
+            slower, but more confidence
+
+        - end-to-end 
+
+            selenium 
+
+            slowest, and brittle 
+
+    -
+
+    A unit can be a single or multiple objects.
+
+
+Setting up the Testing Environment
+
+    $ npm i jest @types/jest @babel/core @babel/preset-env babel-jest -D
+    // testing framework by Facebook,
+    // built on top of Jasmine 
+
+     @types/jest 
+    provides intellisence for using Jest in VSCode 
+
+    @babel/core
+    for transpiling code 
+
+    @babel/preset-env
+    each feature is implemented in babel as a plugin 
+
+    a preset is a collection of plugin 
+    which enables us to use modern JavaScript features 
+    without having to manually import different plugins
+
+    babel-jest plugin 
+
+    ---
+
+    then in the root of the project 
+
+    $ touch babel.config.json 
+
+    {
+        "presets": ["@babel/preset-env"]
+    }
+
+    -
+
+    then create a basic test file 
+
+    --
+
+    then 
+
+    $ jest 
+
+    ---
+
+    $ jest --watch 
+
+    Jest will monitor your files for changes.
+
+    Useful for development.
+
+    NOTE: must install jest globally 
+
+    in package.json 
+
+
+    "scripts": {
+        "test": "jest --watch"
+    }
+
+    --
+    now can do 
+
+    $ npm test 
+
+
+Your First Unit Test 
+
+
+
+Unit Testing Redux Applications 
+
+    One way to test a Redux application is through 
+
+    solitary (lonely) tests 
+
+        actions     reducers    middleware 
+
+    test its individual building blocks in isolation 
+
+    write separate tests for action creators, reducers, etc. 
+
+    test a single function in isolation 
+
+    // this is a poor way to do it,
+    // but often done this way 
+
+    Problems 
+
+    - coupled to implementation
+        // when change implementation, 
+        // then test breaks 
+
+        don't know if the problem is in our test or 
+        our code 
+
+    - break often 
+
+    - kill productivity 
+
+    - not reliable
+
+    Writing and fixing breaking tests 
+
+    => The problem is not unit testing itself. 
+    It's how you practice it. 
+
+    Our unit tests should not test the implementation,
+    they should test the behavior of our application.
+
+
+    Metaphor,
+    consider the microwave,
+    press start button then look at the timer 
+
+    don't care about internals 
+
+
+    Test the behavior, not implementation
+
+
+    Solitary tests provide little value if any. 
+
+    A redux application 
+    is a store management engine.
+    We dispatch an action and the store changes.
+
+
+    Test the building blocks together.
+    We dispatch an action,
+    and then test the state of the store. 
+
+    => Social tests 
+
+    since they involve multiple functions or objects working together
+
+    as long as you don't touch external resources,
+    we are still writing unit tests that can execute quickly 
+
+    Benefits of Social tests 
+
+        - less fragile 
+
+        - cheaper to write 
+
+        - cheaper to maintain 
+
+        - more reliable 
+
+
+    Are solitary tests bad?
+
+        -> no 
+
+        solitary tests are useful 
+        if one of the building blocks is complex 
+
+        then should tests it in isolation 
+
+        but the building blocks in Redux are often 
+        very simple 
+
+
+        don't have much logic 
+
+        our action creators return an object 
+
+        our reducers take some state and return the new state 
+
+        no complex logic or algorithm 
+
+        You hardly if ever see any if statements or loops 
+        in these building blocks 
+
+        no logic,
+
+        So what we need to tests is the collaboration of these building blocks together.
+
+Solitary Tests 
+
+
+
+Social Tests 
+
+    npm i @babel/plugin-transform-runtime -D
+
+
+    import { addBug } from '../bugs';
+    import configureStore from '../../configureStore';
+
+    describe("bugsSlice", () => {
+        it("should handle the addBug action", async () => {
+            // dispatch(addBug) => store 
+
+            const store = configureStore();
+            const bug = { description: 'a' };
+
+            await store.dispatch(addBug(bug));
+
+            expect(store.getState().entities.bugs.list).toHaveLength(1);
+        });
+    });
+
+Mocking HTTP calls 
+
+    for creating a fake object 
+
+    $ npm i axios-mock-adapter -D
+
+    import axios from 'axios';
+    import { addBug } from '../bugs';
+    import MockAdapter from 'axios-mock-adapter';
+    import configureStore from '../../configureStore';
+
+    describe("bugsSlice", () => {
+        it("should handle the addBug action", async () => {
+            // dispatch(addBug) => store 
+            const bug = { description: 'a' };
+            const savedBug = { ...bug, id: 1 };
+            
+            const fakeAxios = new MockAdapter(axios);
+            fakeAxios.onPost('/bugs').reply(200, savedBug);
+
+            const store = configureStore();
+            
+
+            await store.dispatch(addBug(bug));
+
+            //expect(store.getState().entities.bugs.list).toHaveLength(1);
+            expect(store.getState().entities.bugs.list).toContainEqual(savedBug);
+        });
+    });
+
+Writing Clean tests 
+
+
+    achieved by having a clear arrange, act, and assert section 
+    make visible by vertical space 
+
+    identify duplication in tests and abstract that away into a helper method 
+    and utilize the beforeEach for statements that are required for all the test cases
+
+    ----
+
+    import axios from 'axios';
+    import { addBug } from '../bugs';
+    import MockAdapter from 'axios-mock-adapter';
+    import configureStore from '../../configureStore';
+
+    describe("bugsSlice", () => {
+        let fakeAxios;
+        let store;
+
+        beforeEach(() => {
+            fakeAxios = new MockAdapter(axios);
+            store = configureStore();
+        });
+
+        const bugsSlice = () => store.getState().entities.bugs;
+
+        it("should add the bug to the store if it's saved to the server", async () => {
+            // Arrange
+            const bug = { description: 'a' };
+            const savedBug = { ...bug, id: 1 };
+            fakeAxios.onPost('/bugs').reply(200, savedBug);
+
+            // Act 
+            await store.dispatch(addBug(bug));
+
+            // Assert
+            //expect(store.getState().entities.bugs.list).toHaveLength(1);
+            expect(bugsSlice().list).toContainEqual(savedBug);
+        });
+
+        it("should not add the bug to the store if it's not saved to the server", async () => {
+            // Arrange
+            const bug = { description: 'a' };
+            fakeAxios.onPost('/bugs').reply(500);
+
+            // Act 
+            await store.dispatch(addBug(bug));
+
+            // Assert
+            //expect(store.getState().entities.bugs.list).toHaveLength(1);
+            expect(bugsSlice().list).toHaveLength(0);
+        });
+    });
+
+Test Coverage 
+
+    To get report 
+
+    $ jest --coverage 
+
+    Will see which parts of the code are coverage by tests.
+
+    in coverage/
+        report/
+
+    open index.html 
+
+    can click into it 
+
+    and it'll show the lines that are not covered by tests 
+
+Exercises 
+
+    - resolving a bug 
+
+    - loading bugs 
+
+    - getting unresolved bugs 
+
+Solution - getUnresolvedBugs 
+
+Solution - resolveBugs 
+
+Solution - loadingBugs 
+

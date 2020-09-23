@@ -1,0 +1,109 @@
+introduction 
+
+redux store 
+
+private properties 
+
+dispatching actions 
+
+subscribing to the store 
+
+a quick note
+
+/* --------------------------
+
+introduction 
+
+redux store 
+
+    So the store 
+    is an object with properties 
+
+    we are only interested in 
+
+    dispatch, subscribe, and getState 
+
+    the internal state is not directly accessible 
+
+    internal state is a private property in the object 
+
+private properties 
+
+    How to implement a private property in JavaScript?
+
+    There are different ways to do this.
+
+    This video shows a simple way 
+
+    customStore.js 
+
+    function createStore() {
+        let state;
+
+        // You can declare a function within a function in JavaScript
+        // just like how we can declare a variable.
+        function getState() {
+            return state;
+        }
+
+        return {
+            getState
+        }
+    }
+
+    export default createStore;
+
+    ----
+
+dispatching actions 
+
+    // the parameter is a reducer reference 
+    function createStore(reducer) {
+        let state;
+
+        function dispatch(action) {
+            // Call the reducer to get the new state 
+            state = reducer(state, action);
+
+            // Notify the subscribers 
+        }
+
+        function getState() {
+            return state;
+        }
+
+        return {
+            dispatch,
+            getState
+        }
+    }
+
+subscribing to the store 
+
+     function createStore(reducer) {
+        let state;
+        let listeners = [];
+
+        function subscribe(listener) {
+            listeners.push(listener);
+        }
+
+        function dispatch(action) {
+            state = reducer(state, action);
+
+            for (let i = 0; i < listeners.length; i++) 
+                listener[i]();
+        }
+
+        function getState() {
+            return state;
+        }
+
+        return {
+            subscribe,
+            dispatch,
+            getState
+        }
+    }
+
+a quick note

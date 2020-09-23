@@ -1,0 +1,561 @@
+introduction
+
+redux architecture 
+
+your first Redux App 
+
+designing the store 
+
+defining the actions 
+
+creating a reducer 
+
+creating the store 
+
+dispatching actions 
+
+subscribing to the store 
+
+action types 
+
+action creators
+
+exercise
+
+solution 
+
+/* -----------------
+
+introduction
+
+    Core concepts of Redux 
+
+redux architecture 
+
+    With Redux, you store your application state inside a single JavaScript object 
+    called the store 
+
+    This object is the single source of truth for your application state 
+    and is accessible to all parts of the UI 
+
+    Example for an ecommerce app 
+
+    {
+        categories: [],
+        products: [],
+        cart: {},
+        user: {}
+    }
+
+    We cannot directly modify or mutate the store 
+    since Redux is built on top of functional programming principles 
+
+    -
+
+    Store is an immutable object 
+
+    function reducer(store) {
+        // return updated store 
+    }
+
+
+    // use the spread operator or one of the immutability libraries 
+
+    function reducer(store) {
+        const updated = { ...store };
+    }
+
+
+    Reducer 
+    it's a function that takes in the current instance of the store, 
+    and returns the updated store 
+
+    It takes an action
+
+    An Action is just a plain JavaScript object that describes 
+    what just happened.
+
+    user logged in, logged out, or added an item to the shopping cart etc. 
+
+    function reducer(store, action) {
+        const updated = { ...store };
+        updated.products = ???
+    }
+
+    Based on the type of the action,
+    the reducer will know what properties of the state to update.
+
+    In a real app,
+    our store can have many slices 
+
+    each reducer will be responsible for updating a specific slice of the store 
+
+    Think of an organization for each department. 
+
+    Store 
+
+    Actions 
+        -> plain JavaScript objects 
+        // basically an event 
+
+    Reducer 
+        -> responsible for updating a slice of the store 
+        // think of it like an event handler 
+
+    Reducers are pure functions,
+    don't mutate and don't have any side effects 
+
+    How do they work together?
+
+        -> when a user performs an action 
+
+        we create an action object and dispatch it 
+
+        The Store object has a dispatch method 
+
+        that takes an action 
+
+        it will then forward the action to the reducer 
+
+        We do not call the reducer directly 
+
+
+        the store is in charge of calling the reducer 
+
+
+    Action -> dispatch -> Store -> Reducer 
+
+    the reducer computes the new state and creates a new Store 
+
+    it will then notify the UI components for the updates 
+
+    they will pull out the updated data and refresh themselves 
+
+    --
+
+    Why all this?
+
+
+    The dispatch is like an entry point to the Store.
+
+    By dispatching actions, we are sending all actions through the same 
+    entry point.
+
+    Have a central place to control what should happen 
+
+    every time the user performs an action 
+
+    This allows us to log every action,
+    // Redux dev tools 
+
+    can easily implement undo and redo mechanisms
+
+your first Redux App 
+
+    A bug tracker app 
+
+    The steps to follow when you want to build a Redux application.
+
+    1) Design the store 
+        // what you want to keep in the store 
+
+    2) Define the actions 
+        // what are the actions that a user can perform 
+        // in this application 
+
+    3) Create a reducer 
+        // one or more reducers 
+        // they take the initial store and an action 
+        // to update its state 
+
+    4) Set up the store 
+
+
+    $ npm i redux@4.0
+
+designing the store 
+
+    Maintain a list of bugs 
+
+    [
+        { 
+            id: 1,
+            description: "",
+            resolved: false
+        },
+    ]
+
+
+    in real life 
+
+    {
+        bugs: [
+                { 
+                id: 1,
+                description: "",
+                resolved: false
+            },
+        ],
+        currentUser: {}
+    }
+
+    --
+
+defining the actions 
+
+    for this simple sample application 
+
+    -> add a bug 
+    -> mark as resolved 
+    -> delete a bug 
+
+    In a real world application 
+    more complex actions.
+
+    -
+
+    An action is just a plain JS object 
+
+    example:
+
+    {
+        type: "ADD_BUG",
+        description: "..."
+    }
+
+    You can use any other type that is serializable 
+
+    Should be able to store data on disks,
+
+    could also use a number 
+
+    however they are not descriptive 
+
+    Also when look at action history 
+
+    we want to see a description of what has happened 
+
+    that's why we want strings 
+
+    Redux has naming convention of using underscores and all caps 
+
+    it's in past tense 
+
+
+    NOTE: 
+
+    that in Flux 
+
+    have two properties 
+        type and payload 
+
+        payload is an object that contains all the data about the action 
+
+    {
+        type: "bugAdded",
+        payload: {
+            description: "..."
+        }
+    }
+
+    It gives your actions a common and consistent structure. 
+
+    So the action contains the minimum information needed to perform 
+
+
+
+creating a reducer 
+
+    New file 
+
+    reducer.js 
+
+    A reducer is a pure function.
+
+    // []
+    let lastId = 0;
+
+    // Redux will call a reducer and pass undefined as the value of the state 
+    // you want to return some initial state 
+    export default function reducer(state = [], action) {
+        if (action.type === 'bugAdded')
+            return [
+                ...state,
+                {
+                    id: ++lastId,
+                    description: action.payload.description,
+                    resolved: false,
+                }
+            ];
+        else if (action.type === 'bugRemoved')
+            return state.filter(bug => bug.id !== action.payload.id);
+        
+        // handle case for an action dispatched that doesn't exist 
+        // to return the current state 
+        return state;
+    }
+
+    --
+
+    switch (action.type) {
+        case "bugAdded":
+            return [
+                ...state,
+                {
+                    id: ++lastId,
+                    description: action.payload.description,
+                    resolved: false,
+                }
+            ];
+        case "bugRemoved":
+            return state.filter(bug => bug.id !== action.payload.id);
+        default:
+            return state;
+    }
+
+    
+creating the store 
+
+    in src/ 
+
+    store.js 
+
+    import { createStore } from 'redux';
+    import reducer from './reducer';
+
+    // you pass a reducer,
+    // the function reference,
+    // note that createStore is a higher order function 
+    const store = createStore(reducer))
+
+    export default store;
+
+dispatching actions 
+
+    in index.js 
+
+    import store from './store';
+
+    console.log(store);
+
+    
+    So a store is an object with some properties.
+
+    a method for dispatch,
+    method for subscribe 
+        // get notified when state of the store changes 
+    getState method 
+    replaceReducer method 
+    Symbol(observable)
+
+
+    no method for setting the state,
+    only have getState 
+
+    to change the state we have to dispatch an action 
+
+    the beauty of redux is that actions all have the same entry point 
+
+
+    When an event occurs, we dispatch an action.
+
+    store.dispatch({
+        type: "bugAdded",
+        payload: {
+            description: "Bug1"
+        }
+    });
+
+    store.dispatch({
+        type: "bugRemoved",
+        payload: {
+            id: 1
+        }
+    });
+
+subscribing to the store 
+
+    So before dispatching an action. 
+
+    // pass a function,
+    // that function passed will be called every time the store is changed,
+
+    // NOTE that subscribe returns a function for unsubscribing to the store 
+    // possible that user navigates away ,
+    // subscriptions can cause memory leaks 
+    const unsubscribe = store.subscribe(() => {
+        console.log("Store changed!", store.getState());
+    });
+
+
+    unsubscribe();
+    // will no longer get notifications 
+
+action types 
+
+    // state = reducer(state, action);
+
+    // then will notify the subscribers 
+
+
+    Redux is actually a very small, simple library 
+    with a small API 
+    there are few moving parts 
+
+    but with a real world,
+    We want to avoid hardcoding strings 
+
+    such as the types of the actions being dispatched 
+
+    -
+
+    To fix this 
+
+    add a new file 
+
+    actionTypes.js 
+
+    export const BUG_ADDED = "bugAdded"; 
+    export const BUG_REMOVED = "bugRemoved";
+
+    -
+
+    now in reducer 
+
+    replace with the constant 
+
+    import * as actions from './actionTypes';
+
+
+        case actions.BUG_ADDED:
+
+        case actions.BUG_REMOVED:
+
+
+    when dispatching 
+
+    import * as actions from './actionTypes';
+
+
+    store.dispatch({
+        type: actions.BUG_ADDED,
+        payload: {
+            description: "new bug"
+        }
+    });
+
+
+action creators 
+
+    Previously have a problem with how we dispatch an action.
+
+    have a lot of typing,
+
+    and there may be multiple places where we dispatch the same action 
+
+    duplication 
+
+    To improve this, we can make a function that will create the action for you .
+
+    call that an action creator 
+
+    src/
+
+        actions.js
+
+        or 
+
+        actionCreators.js
+
+    import * as actions from "./actionTypes";
+
+    export function bugAdded(description) {
+        return {
+            type: actions.BUG_ADDED,
+            payload: {
+                description: description
+            }
+        }
+    } 
+
+    -
+
+    now modify 
+
+    import { bugAdded } from "./actions";
+
+    store.dispatch(bugAdded("Bug 1"));
+
+
+    now we can easily dispatch the same action type from different places 
+    of our app 
+
+    we can then update it whenever need be in a single place 
+
+    -
+
+    can also create your action creators with arrow syntax 
+    since that is more concise 
+
+
+    export const bugAdded => description => ({
+        type: actions.BUG_ADDED,
+        payload: {
+            description: description
+        }
+    });
+
+exercise
+
+    Implement resolving a bug. 
+
+    // create the action type 
+
+        export const RESOLVED_BUG = "resolvedBug";
+
+
+    // create the action creator 
+
+        export const resolvedBug = id => ({
+            type: actions.RESOLVED_BUG,
+            payload: {
+                id: id,
+                resolved: true
+            }
+        });
+
+    // add case for the reducer 
+
+        case actions.RESOLVED_BUG:
+            return state.map(bug => ({
+                
+            }))
+
+    // dispatch the action 
+
+        store.dispatch(resolveBug(1));
+
+solution 
+
+    think about actions first,
+    then the reducer 
+
+    use past tense for action type names 
+
+    // action creator 
+    // we are returning an object so we wrap it in parenthesis
+
+        export const bugResolved = id => ({
+            type: actions.BUG_RESOLVED,
+            payload: {
+                id
+            }
+        });
+
+    // now for reducer 
+
+    // for updating an existing property on an object,
+    // use state.map 
+
+        case actions.BUG_RESOLVED:
+            return state.map(bug => bug.id !== action.payload.id ? bug : {...bug, resolved: true });

@@ -1,0 +1,445 @@
+creating a react app 
+
+installing redux 
+
+providing the store 
+
+subscribing and dispatching 
+
+connecting components using react-redux 
+
+hooks 
+
+connect one or many components 
+
+exercise 
+
+solution
+
+/* ------------------
+
+creating a react app 
+
+    npx 
+    is a tool introduced in npm 5.2 
+
+    $ npm -v 
+
+    npx allows you to download and run a package in a single command 
+
+    $ npx create-react-app bugs-frontend 
+
+    $ npm start 
+
+
+installing redux 
+
+    mkdir 
+
+    store/
+
+    $ npm i redux 
+
+    $ npm i @reduxjs/toolkit axios moment 
+
+providing the store 
+
+    React Redux look at the documentation 
+
+    use that library 
+
+    -
+
+    the manual way to connect 
+
+    in src/ 
+        components/
+
+        Bugs.jsx 
+
+        import React, { Component } from 'react';
+
+        class Bugs extend Component {
+            render() {
+                return <div>Bugs</div>
+            }
+        }
+
+        export default Bugs;
+
+
+    ---
+    App.js 
+
+    function App() {
+        return (
+            <Bugs />
+        );
+    }
+
+    ---
+
+    now connect component to our store 
+
+    in App.js 
+
+    import configureStore from './store/configureStore';
+
+    const store = configureStore();
+
+
+    // use react context 
+    // provide an object at the top of the component tree 
+    // and every component will be able to access that object 
+
+    --
+
+    new folder 
+
+        context/
+
+        storeContext.js 
+
+
+        // could also have another context for the current user 
+
+
+        --
+
+        import { createContext } from 'react';
+
+        // StoreContext is like a class 
+        const StoreContext = createContext();
+
+        export default StoreContext;
+
+    --
+
+    then in App.js 
+
+        import StoreContext from "./contexts/storeContext";
+
+        const store = configureStore();
+
+        /*
+        so the Provider has a prop called value 
+        where you should pass the object to your component tree 
+
+        every component below will be able to access that store 
+        */
+
+        function App() {
+            return (
+                <StoreContext.Provider value={store}>
+                    <Bug />
+                </StoreContext.Provider>
+            );
+        }
+
+    -
+
+    then in Bugs component,
+    tell it to use the store context 
+
+    there are two ways to tell the component 
+
+        -> after create class can set 
+
+        Bug.contextType = StoreContext 
+
+        -> or set property at the time of creating the class 
+
+
+            class Bug extends Component {
+                static contextType = StoreContext
+
+                componentDidMount() {
+                    console.log(this.context);
+                }
+
+                render() {
+                    return <div>Bugs</div>
+                }
+            }
+
+subscribing and dispatching 
+
+    Can get list of bugs from backend and render them to the screen 
+
+    basically 2 things you have to do here 
+
+    First subscribe to the store to get notified for when the state of the store 
+    is changed
+
+
+    also dispatch the loadBugs action to get from the backend and put into the store 
+
+    ---
+    import { loadBugs } from '../store/bugs';
+
+    class Bug extends Component {
+        static contextType = StoreContext
+
+        state = { bugs: [] };
+
+        componentDidMount() {
+            const store = this.context;
+
+            // this function gets executed every time an action 
+            // gets dispatched 
+
+            // only call if it has changed 
+            this.unsubscribe = store.subscribe(() => {
+                const bugsInStore = store.getState().entities.bugs.list;
+                if (this.state.bugs !== bugsInStore)
+                    this.setState({ bugs: bugsInStore });
+            });
+
+            // dispatch loadBugs action
+            // that function is actually an action creator  
+            store.dispatch(loadBugs());
+        }
+
+        componentWillUnmount() {
+            this.unsubscribe();
+        }
+
+        render() {
+            return (
+                <ul>
+                    {this.state.bugs.map(bug => (
+                        <li> key={bug.id}>{bug.description}</li>
+                    )}
+                </ul>
+            );
+        }
+    }
+
+
+    problem is that it is tedious for every component 
+
+    have to set the context,
+    then in component did mount 
+
+    subscribe to the store 
+
+    then have to unsubscribe 
+
+    if forget then cause memory leaks 
+
+    error prone and tedious 
+
+    that's why we use the react redux library 
+    as it takes care of all the complexity for us 
+
+
+connecting components using react-redux 
+
+    $ npm i react-redux@7.2 
+
+    in App.js 
+
+    use the Provider component that comes with react redux 
+
+
+    import { Provider } from 'react-redux';
+
+    function App() {
+        return (
+            <Provider store={store}>
+                <Bugs />
+            </Provider>
+        );
+    }
+
+
+    // no longer need context/ 
+
+    --
+    now in bugs component 
+
+
+      import { connect } from 'react-redux';
+    
+      class Bug extends Component {
+
+        componentDidMount() {
+           this.props.loadBugs();
+        }
+
+        componentWillUnmount() {
+
+        }
+
+        render() {
+            return (
+                <ul>
+                    {this.props.bugs.map(bug => (
+                        <li> key={bug.id}>{bug.description}</li>
+                    )}
+                </ul>
+            );
+        }
+    }
+
+    // takes the state and returns an object 
+    // wrapped in () 
+    // if you forget (), then JS will think it's a code block 
+    // the props 
+    // what you set here will be passed to the component as a prop of the same name 
+
+    // so it's a function that takes the state of the store 
+    // and returns the part of the store that you are interested in 
+    // the properties of the object will end up as props of the component 
+
+    const mapStateToProps = state => ({
+        bugs: state.entities.bugs.list 
+    });
+
+    // takes dispatch function of the store 
+    // map to the props of the component
+    const mapDispatchToProps = dispatch => ({
+        loadBugs: () => dispatch(loadBugs())
+    });
+
+    // a higher order function 
+    // you get a new function 
+    // creates a component under the hood that wraps your component 
+    // and it takes care of subscribing and unsubscribing to the store 
+
+    // so your component knows nothing about the store 
+    // and it only knows about the props that it requires 
+
+    // So Bugs is now a dummy or presentation component 
+    // it only knows how to present data 
+    // it doesn't know anything else 
+
+    // Container component 
+    //  wraps the Presentation component 
+
+    export default connect(mapStateToProps, mapDispatchToProps)(Bugs);
+
+
+
+
+    // instead of exporting this component, Bugs 
+    // we are going to wrap it around another component 
+    // which will be the one to subscribe to the store 
+    // and unsubscribe later one 
+
+
+    // use connect() from react-redux 
+
+    it's a simple function 
+        it takes 2 arguments 
+
+        1st arg 
+        => a function that specifies what part of the store this component 
+        is interested in 
+
+        2nd arg 
+        => argument for dispatching actions 
+
+
+
+
+    so react redux is going to subscribe to the store 
+
+    get the list of bugs 
+
+    and pass them as props to this component 
+
+
+
+    so becomes 
+
+    ConnectFunction
+        ReactRedux.Provider 
+            Bugs 
+
+    so subscribing, unsubscribing, and connecting is done under the hood for you 
+    and takes care 
+    of the interaction between your components and the store for you 
+        
+hooks 
+
+    // a better way to write it 
+
+    Only works in functional components 
+
+    components/
+
+        BugsList.jsx 
+
+        // react js code snippets 
+        // sfc 
+        // stateless functional component 
+        // then tab 
+        // for the code snippet 
+
+        // in function components, you use hooks 
+        //  a hook is a function that allows you to tap 
+        // info lifecycle methods in functional components 
+
+
+        import React, { useEffect } from 'react';
+        import { useDispatch, useSelector } from 'react-redux';
+
+        // useDispatch returns the dispatch function of the redux store 
+
+        const BugsList = () => {
+
+             const dispatch = useDispatch();
+
+                // with selector you can select a slice of your store 
+
+             const bugs = useSelector(state => state.entities.bugs.list)
+
+             /*
+             or can use selector that you have defined 
+             pass a reference to it 
+             
+             const bugs = useSelector(getUnresolvedBugs);
+
+             */
+
+              useEffect(() => {
+                  // where you write code to perform side effects
+                  // like API calls 
+
+                  dispatch(loadBugs());
+              }. []);
+
+              return (
+                <ul>
+                    {bugs.map(bug => (
+                        <li> key={bug.id}>{bug.description}</li>
+                    )}
+                </ul>
+            );
+        };
+
+    so now you only have to use 
+
+    useDispatch
+    and 
+
+    useSelector
+
+connect one or many components 
+
+    if you subscribe a top level component,
+    then every time the store is updated,
+
+    the component and its child components will be rerendered 
+
+    so it's best practice 
+
+    to have each component independently subscribe to a small slice 
+    of the store if it is interested 
+
+    so that it won't be re-rendered if other slices of the store are updated 
+
+exercise 
+
+solution

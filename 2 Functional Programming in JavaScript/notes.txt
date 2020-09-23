@@ -1,0 +1,701 @@
+Introduction 
+
+What is Functional Programming
+
+functions as first-class citizens
+
+higher-order functions 
+
+function composition
+
+composing and piping 
+
+currying
+
+pure functions 
+
+immutability
+
+updating objects
+
+updating arrays 
+
+enforcing immutability
+
+immutable.js 
+
+immer 
+
+quiz 
+
+coding challenges 
+
+/* ------------------------ */
+
+Introduction 
+
+    Redux is built on top of functional programming principles 
+
+    essential functional programming concepts 
+
+    understanding this is crucial to building Redux applications 
+
+What is Functional Programming
+
+    Functional is one of many programming paradigms 
+
+    * functional
+    * object-oriented
+    * procedural
+    * event-driven
+
+    It's about decomposing a problem into a bunch of small,
+    and reusable functions 
+
+    input               output 
+        ->          ->
+
+    Take some input and return a result.
+
+    They don't mutate or change data 
+
+    With this structure,
+    we can compose these functions to build more complex ones 
+
+    Benefits?
+
+        - more concise 
+        - easier to debug 
+        - easier to test 
+        - more scalable
+            // since can run many function calls in parallel
+            // and take advantage of multiple cores of a CPU 
+
+    Languages such as 
+        * clojure 
+        * haskell 
+
+        which are purely functional 
+
+    JavaScript is a multi-paradigm programming Language
+    // you can apply functional programming principles in JavaScript
+
+functions as first-class citizens
+
+    In JavaScript, functions are first-class citizens
+    so we can treat them like any other variable 
+
+    functions 
+        * can assign to a variable 
+        * pass as an argument
+        * return from other functions 
+
+    index.js 
+
+    function sayHello() {
+        return "Hello World";
+    }
+
+    let fn = sayHello;
+    // we aren't invoking the function here,
+    // rather we are simply passing a reference to it 
+
+    // we can treat them like any other type of object 
+
+    // fn is an alias for sayHello
+
+    fn(); // just like doing sayHello()
+
+    -
+
+    // pass a function as an argument to another function 
+
+    function greet(fnMessage) {
+        console.log(fnMessage());
+    }
+
+    // so greet function, invokes the function within 
+
+        greet(sayHello);
+        // we pass a reference
+
+    // can also return it from another function 
+
+
+    function sayHello() {
+        // return an anonymous function for example
+        return function() {
+            return "Hello World";
+        }
+    }
+
+    let fn = sayHello();
+    let message = fn();
+
+
+    why return a function?
+        -> a powerful technique 
+        and applications in the real world 
+
+higher-order functions 
+
+    function greet(fn) {
+        console.log(fn());
+    }
+
+    function sayHello() {
+        return function() {
+            return "Hello World";
+        };
+    }
+
+    // so the function names,
+    // greet and sayHello 
+    have a special name in functional programming 
+
+    They are called higher-order functions,
+    
+    so higher-order functions 
+    is one that takes a function as an argument 
+    or returns it 
+
+    // or both 
+
+
+    So instead of working on strings, numbers, or booleans,
+    it goes higher to operate on functions 
+
+    -
+
+    let numbers = [1, 2, 3];
+    
+    // map is an example of a higher order function 
+    // since it takes a function as an argument 
+
+    numbers.map(n => n*2);
+
+    or setimeout 
+
+    setTimeout(() => console.log("Hello"), 1000);
+
+function composition
+
+    Compose them to build more complex functions for solving real world problems 
+
+    let input = "   JavaScript  ";
+
+    // get input, trim it,
+    // then wrap inside a div 
+
+    let output = "<div" + input.trim() + "</div>";
+    
+
+    --
+
+    now to solve it using functional programming techniques
+    
+    the two steps to follow here 
+
+    // trim
+    // wrapInDiv 
+
+    // so can implement it for each step using a small reusable function 
+
+    const trim = str => str.trim();
+
+    // using a template string 
+    const wrapInDiv => str => `<div>${str}</div>`;
+
+    // function composition 
+    const result = wrapInDiv(trim(input));
+
+
+    // could also create another for converting a string to lowercase 
+    // toLowerCase 
+
+    const toLowerCase = str => str.toLowerCase();
+
+    const newResult = wrapInDiv(toLowerCase(trim(input)));
+
+
+    So reading it from right to left,
+    becomes difficult to read,
+
+    other is the parenthesis and end up with a lot,
+    the next lesson solves this problem 
+
+
+composing and piping 
+
+    use lodash to simplify the code used in the last video 
+
+    Lodash is a popular utility library for JavaScript
+    also have package for functional programming 
+
+    $ npm i lodash 
+
+    import { compose, pipe } from 'lodash/fp';
+    // fp stands for functional programming 
+
+    // compose takes 3 arguments for this case 
+    // references to those functions 9
+    const transform = compose(wrapInDiv, toLowerCase, trim)
+
+    transform(input);
+
+
+    One problem is the order of our operations,
+    have to read from right to left,
+    instead can use the pipe,
+
+    as to list our functions in the order we want to apply them 
+
+    const transform = pipe(trim, toLowerCase, wrapInDiv);
+    transform(input);
+
+currying
+
+    A powerful functional programming technique 
+
+    Haskell Curry 
+
+    -----
+
+    import { compose, pipe } from "lodash/fp";
+
+    let input = "   JavaScript  ";
+    let output = "<div" + input.trim() + "</div>";
+
+    const trim = str => str.trim();
+    const result = wrapInDiv(trim(input));
+
+    /*
+    Note that these two functions, are similar, and would be useful 
+    if we were to parameterize the function.
+
+
+    */
+    const wrapInDiv => str => `<div>${str}</div>`;
+    const wrapInSpan => str => `<span>${str}</span>`;
+
+    const wrap => (type, str) => `<${type}>${str}</${type}>`;
+
+    const transform = pipe(trim, toLowerCase, wrap);
+    
+    console.log( transform(input) );
+
+
+    so pipe,
+    builds a pipeline,
+    the output of each function,
+    ends up being the input of the next function 
+
+    every argument of the pipe function, has to be a function reference,
+    // can't invoke it 
+
+    Currying solves this problem.
+
+    currying.js 
+
+    function add(a, b) {
+        return a + b;
+    }
+
+    // currying allows us to take a function that has N arguments 
+    // and convert it to a function that has a single argument 
+    // N => 1
+
+    // to apply currying,
+    // get rid of b as the second parameter 
+
+    function add(a) {
+        return function(b) {
+            return a + b;
+        };
+    }
+
+    const add1 = add(1);
+    add1(5);
+
+    // so we store a function,
+
+
+    add(1)(5);
+
+    So instead of separating our arguments with a comma,
+    we separate them using parenthesis
+    
+    What matters is that we have a function with a single parameter 
+
+    so writing with arrow function 
+
+    const add2 = a => b => a + b;
+
+    // same as 
+    // (a, b) => a + b;
+    
+
+    ---
+
+    const wrap = type => str => `<${type}>${str}</${type}>`;
+
+    so now we can utilize curring 
+    so that each function takes in one input 
+    then produces an output 
+
+
+    const transform = pipe(trim, toLowerCase, wrap("div"));
+
+
+pure functions 
+
+    same args => same result
+
+    So a function is pure such that if every time 
+    we call it, and give it the same arguments,
+    it always returns the same result 
+
+    Some examples 
+
+    // this is not pure since it'll change every time 
+    function myFunction(number) {
+        return num * Math.random();
+    }
+
+
+    function myFunction(number) {
+        return number * 2;
+    }
+
+    Pure Functions 
+
+        * no random values 
+        * no current date/time 
+        * no global state
+            (DOM, files, db, etc)
+            // can't read or change state 
+
+    In Redux, we have reducers,
+    when using Redux, 
+
+    our reducers have to be pure.
+
+    We can't mutate our parameters.
+
+    More examples 
+
+    function isEligible(age) {
+        return age > minAge; // We CAN'T rely on global variable.
+    }
+
+    // now this function is pure,
+    // so everything the function needs must be passed to its parameter list
+    function isEligible(age, minAge) {
+        return age > minAge;
+    }
+
+    The benefits of pure functions 
+
+        * self-documenting
+        * easily testable 
+        * concurrency 
+            // can run the functions in parallel 
+            // since we aren't change or mutating state 
+        * cacheable 
+            // useful for intensive computations,
+            // we can optimize our app 
+
+immutability
+
+    means 
+
+    once created, cannot be changed!
+
+    You have to take a copy and then change that copy.
+
+    For example,
+    strings are immutable 
+
+    let name = "steven";
+    let newName = name.toUpperCase(); // We get a new string. 
+
+    // The original string is not affected 
+
+    In JavaScript, objects and arrays are mutable.
+
+    In pure functional languages, we can't mutate at all.
+
+    -
+
+    const book = {}; // Not creating an immutable object 
+    book.title = "";
+
+    With const, it prevents reassignment
+
+
+    Why immutability?
+
+        * predictability
+
+            If call a function and pass an object to it,
+            we know that the object is not going to change. 
+
+            So there are no surprises down the road. 
+
+        * faster change detection 
+
+            // specific to React and Angular 
+
+            it needs to know when the state has changed 
+            so that it can re-render 
+
+
+            React can quickly tell if an object was modified,
+            because it compares the objects from their references
+
+                if (obj1 === obj2)
+
+        * concurrency 
+
+    Should we always favor immutability?
+
+        -> no 
+
+        every approach has its pros and cons 
+
+    cons 
+        - performance 
+
+            every time we change an object,
+            all the values have to be copied to the new object 
+
+            only an issue if dealing with a large number of objects 
+            // like several thousands 
+
+            (it's not an issue with just a few objects tho)
+
+        - memory overhead 
+            when copy objects 
+
+            we have immutability libraries that reduce this overhead as much as possible 
+
+            they use a technique called,
+            structural sharing 
+
+            So if some values are common between two objects 
+            they are not copied across,
+            they are shared 
+
+    So with Redux, you should not mutate data 
+
+updating objects
+
+    const person = { name: "John" };
+
+    // Take a copy, then update the copy.
+    // There are basically two ways to do this in JavaScript 
+
+    // one way 
+
+    use the object 
+
+    // 1st arg is the object to copy to 
+    // 2nd arg is the object,
+
+    // so the properties on the 2nd arg will be copied to the 1st arg
+    Object.assign({}, person);
+
+    optionally you could pass a 3rd arg,
+    which is an object with updated and/or additional properties 
+
+    example:
+
+    const updated = Object.assign({}, person, { name: "Bob"});
+
+    --
+
+    // There is a better way tho.
+    // We can use the spread operator.
+
+    // copy all the properties of the person object 
+    // we can supply any updated and/ore additional properties
+    // here we can override previously set properties
+    const updated = {...person, name: "Bob"};
+
+    must be aware that 
+    both of these do a shallow copy 
+
+    So you have to be careful when working with nested objects 
+
+
+    const person = {
+        name: "John",
+        address: {
+            country: "USA",
+            city: "San Francisco"
+        }
+    };
+
+    const updated = {...person, name: "Bob"};
+
+    they have the same address tho,
+    meaning they refer to the same object on the heap 
+
+    changing one will reflect in the original too 
+
+    So for the original and the 
+    new object that gets a copy 
+    for them to each be their own indivial objects 
+    with individial nested objects 
+    -> we need to do a deep copy 
+
+    const updated = {
+        ...person,
+        address: {
+            ...person.address,
+            city: "New York"
+        },
+        name: "Bob"
+    };
+
+
+    This is verbose, so we instead use libraries for deep copying.
+
+
+updating arrays 
+
+    const numbers = [1, 2, 3];
+
+    // 3 different scenarios 
+    adding an item, removing an item, and updating an existing item 
+
+    // adding,
+    // can use the spread operator 
+
+    const added = [...numbers, 4];
+
+    // to put at a specific position 
+
+    const index = numbers.indexOf(2);
+
+    // we have to spread the array to get their values 
+    // just so we don't get nested arrays
+    const added = [
+        ...numbers.slice(0, index), 
+        4,
+        ...numbers.slice(index)
+    ];
+
+
+    // For removing 
+    // remove the number 2 for this example 
+    numbers.filter(n => n !== 2);
+
+    // Updating 
+    const updated = numbers.map(n => n === 2 ? 20 : n);
+
+    // if an array of objects 
+    // would have to use the spread operator 
+
+enforcing immutability
+
+    JavaScript is not a pure functional programming language.
+
+    We need to use libraries that offer real, immutable data structures. 
+
+    There are tons,
+
+    the most popular are 
+
+        * immutable 
+        * immer 
+        * mori 
+
+    immutuable is by Facebook 
+    there are problems with this library tho 
+
+    immer doesn't give you any immutable data structures,
+    you just work with Vanilla JavaScript objects 
+
+    The library is up to you.
+    
+
+immutable.js 
+
+    let book = { title: "Harry Potter" };
+
+    function publish(book) {
+        book.isPublished = true;
+    }
+
+    publish(book);
+
+    console.log(book);
+
+    --
+    With functional programming 
+
+    we don't want to mutate objects.
+
+    immutable.js provides immutable data structures 
+
+    -
+
+    $ npm i immutable 
+
+
+    import { Map } from 'immutable';
+
+    // With Map you can create a hash map 
+    // for key value pairs,
+    // it's immutable 
+    // we can't access the property using . dotation 
+    // need to use get()
+    // so have to learn the API, 
+    // pretty simple API tho, but hard to integrate it with other libraries 
+    // that expact plain JavaScript objects 
+    // have to always call
+    // .toJS() method 
+
+     let book = Map({ title: "Harry Potter" });
+
+    function publish(book) {
+        return book.set('isPublished', true); // it will return a new object 
+    }
+
+    publish(book);
+
+    console.log(book);
+
+immer 
+
+    Mosh's preference 
+    since it uses regular JavaScript data structures 
+
+    immer has become more popular and almost as popular as immutable.js 
+
+    $ npm i immer 
+
+
+    import { produce } from 'immer';
+
+    let book = { title: "Harry Potter" };
+
+    function publish(book) {
+        // 1st arg to produce is the initial state 
+        // 2nd arg is a function that specifies your mutations
+        return produce(book, draftBook => {
+            // draftBook is a proxy 
+            // our object is not getting mutated tho 
+            // it's a new object 
+            draftBook.isPublished = true;
+        });
+    }
+
+    const updated = publish(book);
+
+    console.log(updated);
+
+quiz 
+
+coding challenges 

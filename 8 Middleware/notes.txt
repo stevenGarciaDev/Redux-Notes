@@ -1,0 +1,315 @@
+introduction 
+
+what is middleware 
+
+creating middleware 
+
+parameterizing middleware 
+
+dispatching functions 
+
+exercise 
+
+solution 
+
+a quick note 
+
+/* ----------------
+
+introduction 
+
+    advanced and importance concept in Redux 
+
+    Middleware is the building block 
+    that allows us to run side effects 
+
+    such as calling APIs 
+
+    so how to use existing middleware and how to write your own 
+
+what is middleware 
+
+    By dispatching actions 
+
+    you are essentially sending them through a single entry point 
+
+    the other side 
+    you have your reducers 
+    
+    So when dispatch an action 
+
+    it goes through the pipeline 
+    then reaches the root reducer 
+
+    The root reducer will then pass its action to all its child reducers 
+
+
+    In the pipeline you can add functions that will be executed everytime the action 
+    is dispatched 
+
+    it's called middleware because it sits in the middle 
+
+    So middleware is a piece of code 
+    that gets executed after an action gets dispatched 
+    and before it reaches the root reducer 
+
+    There are tons of existing middleware 
+
+    Middleware 
+
+        * calling APIs 
+        * error reporting 
+        * analytics
+        * authorization
+        * etc. 
+
+    Every time an action is dispatched 
+
+        log it 
+
+        then auth 
+            to see if the user is authorized or not 
+            // if not 
+            then will stop processing that action 
+            so that action never reaches the reducer 
+            on the other side of the pipeline 
+
+creating middleware 
+
+    Writing a middleware function from scratch 
+
+
+    store/
+
+        middleware/
+
+            not specific to a domain 
+            they are central to our application 
+
+
+            logger.js 
+
+
+            // action is the action that was dispatched,
+            // next is a reference to the next middleware function 
+            // if it were the last or only middleware function 
+            // then next would refer to the root reducer 
+            const logger = (store, next, action) => {
+
+            }
+
+            // curried version,
+            // Technique for converting a function with N parameters 
+            // to a bunch of functions each with a single parameters 
+            // N => 1 
+
+            // use currying when we want to have a bunch of functions 
+            // and each should have a single parameter 
+
+            so can convert it with 
+
+
+            const logger = store => next => action => {
+                // so that would output an object that looks like the store 
+                // with the properties, getState and dispatch
+                console.log("store", store);
+                console.log("next", next);
+                console.log("action", action);
+
+                // if you don't call next() then the action won't be processed further 
+                next(action);
+            };
+
+            export default logger;
+
+
+        So to use this middleware function,
+        we have to register it as part of setting up our store. 
+
+        
+
+        // using reduxjs/toolkit 
+
+        import logger from './middleware/logger';
+
+        export default function() {
+            return configureStore({
+                reducer,
+                middleware: [logger]
+            });
+        }
+
+    so a middleware function is a curried version of a function 
+    with 3 parameters,
+    the store, next, and action 
+
+    remember 
+    s.n.a.
+
+    there's another way to write this function 
+
+    some people replace the store parameter 
+
+    with object destructing syntax 
+
+
+    const logger = ({ getState, dispatch }) => next => action => {
+
+    }
+
+    --
+
+    if you are not using Redux toolkit 
+
+
+    // NOTE so applyMiddleware is known as a store enhancer 
+    // it's a store that allows us to enhance our store 
+
+
+    import { createStore, applyMiddleware } from "redux";
+    import reducer from "./store/reducer";
+    import logger from "./middleware/logger";
+
+    const store = createStore(reducer, applyMiddleware(logger));
+
+
+parameterizing middleware 
+
+    export default function() {
+        return configureStore({
+            reducer,
+            middleware: [logger('console')]
+        });
+    }
+
+    should add an extra parameter 
+
+    const logger = param => store => next => action => {
+
+    };
+
+    could also pass a complex object 
+
+    such as 
+
+    [logger({ destination: "console"})]
+
+dispatching functions 
+
+    actions should be plain objects with a Type property 
+
+    cannot dispatch a function 
+
+    function allows us to call an API endpoint,
+    dealing with promises,
+    when it is resolved then perhaps dispatch an action 
+    and that action can contain the result of our API call 
+
+    if the promise is rejected then dispatch an action to indicate some error 
+
+    so in that function you can have some logic,
+    you can't do this with plain objects 
+
+    
+    Write a middleware function 
+
+    middleware/
+
+        func.js 
+
+        // create a middleware function 
+        // s.n.a.
+
+        const func = store => next => action => {
+            // check the type for the action that was passed 
+
+            if (typeof action === 'function')
+                action();
+            else 
+                next(action);
+        }
+
+        export default func;
+
+
+
+    middleware: [logger({ destination: "console"}), func]
+
+
+    Note that the order matters for the middleware
+
+
+    store.dispatch(() => {
+        store.dispatch({ type: 'bugsReceived', bugs: [1, 2, 3]});
+    });
+
+
+    so instead pass a reference to the dispatch function 
+
+
+        const func = ({ dispatch, getState }) => next => action => {
+            // check the type for the action that was passed 
+
+            if (typeof action === 'function')
+                action(dispatch, getState);
+            else 
+                next(action);
+        }
+
+
+    -
+
+    so passing in getState is useful for when we want to do some decision making 
+
+    such as, before making an API call 
+
+    if the data is already there then no need to fetch it from the server 
+
+     store.dispatch((dispatch, getState) => {
+        dispatch({ type: 'bugsReceived', bugs: [1, 2, 3]});
+    });
+
+
+    // Thunk / Func 
+
+    already for you 
+
+    // if using Redux toolkit
+    you already get this middleware 
+
+    otherwise you have to manually install 
+
+    $ npm i redux-thunk 
+
+    then register it as a middleware function
+
+
+    -
+
+    so currently we are overriding the middleware in Redux toolkit 
+
+
+    so instead use the default with 
+
+
+    import { configureStore, getDefaultMiddleware } from '@redux/toolkit';
+    import reducer from './reducer';
+
+    export default function() {
+        return configureStore({
+            reducer,
+            middleware: [
+                    // returns an array of middleware functions 
+                ...getDefaultMiddleware(),
+
+                // then you add other middleware functions 
+            ]
+        })
+    }
+
+
+exercise 
+
+solution 
+
+a quick note 

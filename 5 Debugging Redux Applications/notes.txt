@@ -1,0 +1,249 @@
+introduction
+
+installing Redux DevTools
+
+The Basics 
+
+inspector monitor 
+
+tracing
+
+exporting and importing
+
+/* -------------------------------
+
+introduction
+
+installing Redux DevTools
+
+    install Redux DevTools from Chrome store 
+
+    will see tab, Redux 
+
+    // for a basic Redux store, 
+    // view github for redux-devtools-extension 
+
+    -
+
+    const store = createStore(
+        reducer, 
+        window.__REDUX_DEVTOOLS_EXTENSION__ && window.__REDUX_DEVTOOLS_EXTENSION__()
+    );
+
+    -
+
+    right click on dev tools 
+
+    click 
+    'Reload Frame'
+
+
+
+The Basics 
+
+    on the left you have monitors 
+
+        Log Monitor 
+
+        inspector 
+
+        chart 
+
+    Each give you a different way to inspect the actions that are dispatched 
+    in your application.
+
+
+    Log shows a list of actions that have been applied 
+
+
+    inspector is the most popular one 
+
+    chart shows the actions in a visual way
+    // doesn't work tho 
+
+    on the right side is the currently selected project 
+
+    Make sure to select the right instance 
+
+inspector monitor 
+
+    store.dispatch(actions.bugAdded("Bug 1"));
+    store.dispatch(actions.bugAdded("Bug 2"));
+
+
+    right click,
+    reload frame 
+
+    it shows the time it was dispatched too 
+
+    and the actions dispatched 
+
+    you can filter too 
+
+    on right side have tabs 
+
+    action tab 
+        -> shows information about the currently selected action 
+
+        type and payload 
+
+        so can see the tree, chart, raw JSON data 
+    
+
+    state tab 
+
+        -> state after the action has been applied 
+
+    diff tab 
+
+        -> useful as it shows how the state has changed 
+
+        after dispatch the action, 
+        shows the change 
+
+        then make sure that the action was carrying the right data 
+
+    trace tab 
+        -> shows what piece of code dispatched the currently selected action 
+
+    test tab 
+        -> generates boilerplate for testing this action
+
+
+    so view the action to ensure that the proper action and payload occurred 
+
+    then look at the state to ensure that the change has properly taken effect 
+
+    if the change was complex,
+    then look at the diff tab 
+
+    if not updated properly
+    then it means that you have a problem in your reducer 
+
+
+tracing
+
+    where in your source code, you dispatched a certain action
+
+    Note that by default, tracing is not enabled 
+
+    in terminal 
+
+    $ npm i redux-devtools-extension 
+
+    Now you can simplify and enhance your store configuration 
+
+        // with this installed package we can simplify our code 
+        // to be 
+
+    import { devToolsEnhancer } from 'redux-devtools-extension';
+
+    // so devToolsEnhancer is a higher order function 
+    // and it will return 
+    // a store enhancer function 
+    // pass object as arg for configuring our store enhancer 
+
+    // so the store enhancer function knows how to talk to Redux devtools 
+
+    const store = createStore(
+        reducer,
+        devToolsEnhancer({ trace: true })
+    )
+
+    once click on the line,
+    will take you to the Webpack line 
+
+    to see the actual code,
+
+    you need to instruct Webpack to generate source maps for us 
+
+    Source Maps
+    are the map between our bundle and source code 
+
+
+    in webpack.config.js 
+
+
+    // add a new property 
+
+
+    devtool: "source-map"
+
+
+    -
+
+    now restart webpack server in terminal 
+
+    -
+
+    generate two assets 
+
+    app.js 
+
+    app.js.map 
+
+    -
+
+    back in Redux devtools,
+
+
+    click on settings button 
+    on the bottom right, 
+
+    in dialog 
+
+    specify the editor to debugging 
+
+    enter 
+
+
+    external editor: vscode 
+
+    then absolute path to project directory
+
+    $ pwd 
+
+    copy that path 
+
+    on windows can use file explorer 
+
+    then paste into the textarea 
+
+    
+
+    now when you click on the line in the trace tab,
+    it will open it in VScode and highlights the line 
+    that dispatched the given action 
+
+exporting and importing
+
+    exporting and importing the store 
+
+    You can store all the interactions of the user 
+    with the application in a single JSON file.
+
+    And then reload the state of that JSON file later on.
+
+    So now we don't have to launch the application and follow all the steps 
+    to reproduce a bug 
+
+    just reload as the same state as the user 
+
+    view the actions that were dispatched 
+    the day,
+    etc. 
+
+    There is a commercial tool called LogRocket 
+    that gives you this feature for every one of your users in production 
+
+    -
+    This demo is just for doing it on your local machine 
+
+
+    click on download button 
+
+    it generates state.json 
+
+    -
+
+    can bring from JSON file with upload button 
